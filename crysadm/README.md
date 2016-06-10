@@ -1,158 +1,96 @@
-# 如有任何疑问及Bug欢迎加入L.k群讨论
-# @爱转角遇到了谁 大力更新,请尊重作者
-# 更新日期：2016-03-31
+#声明
+云监工的原作者是powergx，有很多功能也是从别人那里merge过来的。我只是加了一些自己想要的功能。
 
-# 为了您的云监工安全,请立马修改config.py[SECRET_KEY] Key！请不要使用默认的
-本次为累计型补丁包更新，直接覆盖即可
-底版:2016-3-31
+# 云监工配置Nginx、uWSGI
 
-更新日记：2016-4-11 （本次改动文件:crysadm_helper.py,web_common.py,dashboard.html）   
-修复监控中心速度换算判断    
-修复数据中心数据有效判断    
-修复Install 账号日记错误    
-修复本周收益不正常问题    
+## 安装Nginx和uWSGI
 
-修复日记：2016-4-2 （本次改动文件:admin.py,crysadm_helper.py,excavator.py,user.py）
-修复运行日记显示登陆时不刷新问题
-修复部分用户登陆失败出现502错误
-注意：需重新登陆
+```bash
+sudo apt-get install nginx
+sudo python3.4 -m pip install uwsgi
+```
 
-更新日记：2016-4-3 （本次改动文件:admin.py,admin_user.html,user.py）
-添加用户管理登陆时间显示
-添加用户管理登陆状态显示
+##配置Nginx
+创建云监工存放目录/var/www/crysadm
+```bash
+sudo mkdir /var/www
+sudo mkdir /var/www/crysadm
+```
+由于是用root创建的，在这里需要修改目录权限。我用的是树莓派，所以需要改成pi:pi
+```bash
+sudo chown -R pi:pi /var/www/crysadm
+```
+首先删除Nginx默认的配置文件
+```bash
+sudo rm /etc/nginx/sites-enabled/default
+```
+配置文件已上传，不感兴趣的可以直接跳到最后一步
 
-更新日记：2016-4-5 （本次改动文件:api.py,admin.py,crysadm_helper.py,user.py,profile.html,user_management.html）
-添加秘银复仇接口
-添加秘银复仇函数
-添加秘银复仇按钮
+创建云监工使用的配置文件/var/www/crysadm/crysadm_nginx.conf
+```shell
+server {
+    listen      4000;
+    server_name 0.0.0.0;
+    charset     utf-8;
+    client_max_body_size 75M;
 
-更新日记：2016-4-10 （本次改动文件:account.py,api.py,crysadm_helper.py,login.py,accounts.html）
-删除无用接口
-添加双重登陆接口
-更新部分接口参数
-添加迅雷账号全部启用函数
-添加迅雷账号全部停用函数
-添加迅雷账号全部启用按钮
-添加迅雷账号全部停用按钮
+    location / { try_files $uri @yourapplication; }
+    location @yourapplication {
+        include uwsgi_params;
+        uwsgi_pass unix:/var/www/crysadm/crysadm_uwsgi.sock;
+    }
+}
+```
+将配置文件符号链接到Nginx配置文件目录，重启Nginx
+```bash
+sudo ln -s /var/www/crysadm/crysadm_nginx.conf /etc/nginx/conf.d/
+sudo /etc/init.d/nginx restart
+```
+##配置uWSGI
+创建一个新的uWSGI配置文件/var/www/crysadm/crysadm_uwsgi.ini
+```bash
+[uwsgi]
+#application's base folder
+base = /var/www/crysadm
 
-By:爱转角遇到了谁
-更新日期：2016-4-10
-api.py更新日记:
-更新用户提现接口
-更新MINE信息接口
-新增免费宝箱接口
-新增放弃宝箱接口
-新增进攻查询接口
-新增秘银进攻接口
-新增幸运转盘接口
+#python module to import
+app = crysadm
+module = %(app)
 
-crysadm_helper.py更新日记:
-删除老式矿机变量
-更换自动任务函数
-新增自动用户提现函数
-新增自动免费宝箱函数
-新增自动秘银进攻函数
-新增自动幸运转盘函数
-更换自动收取水晶函数
-更换自动用户提现函数
-新增自动日记记录函数
-新增正则转换数据函数
-新增数据重组处理函数
+#home = %(base)/
+pythonpath = %(base)
 
-excavator.py更新日记:
-添加设备升级函数
-添加设备定位函数
-添加出厂设置函数
-添加设备管理函数
-添加单个账号提现
-添加单个账号进攻
-添加单个账号转盘
-添加所有账号提现
-添加所有账号进攻
-添加所以账号转盘
-添加日记记录函数
-添加正则转换函数
+#socket file's location
+socket = /var/www/crysadm/%n.sock
 
-admin.py更新日记:
-添加自动用户提现变量
-添加自动开免费宝箱变量
-添加自动秘银进攻变量
-添加自动幸运转盘变量
-更改生成邀请码:30
-更改生成公开邀请码:15
-更改最高迅雷账号上限:100
+#permissions for the socket file
+chmod-socket    = 666
 
-ueer.py更新日记:
-添加收取水晶触发变量
-添加自动用户提现变量
-添加用户提现触发变量
-添加自动开免费宝箱变量
-添加自动秘银进攻变量
-添加自动幸运转盘变量
-添加全能运行日记函数
-添加清空运行日记函数
-更改注册后迅雷账号上限:20
+#the variable that holds a flask application inside the module imported at line #6
+callable = app
 
-web_common.py更新日记:
-更换类型返回信息
-删除老式矿机变量
-添加两种收益显示
+#location of log files
+logto = /var/log/uwsgi/%n.log
+```
+创建uWSGI存放log目录，并修改权限
+```bash
+sudo mkdir -p /var/log/uwsgi
+sudo chown -R pi:pi /var/log/uwsgi
+```
+##克隆云监工代码
+```bash
+cd /var/www/
+git clone https://github.com/HuiMi24/crysadm.git
+```
+如果你是第一次部署，首先要启动redis-server
+```bash
+sudo /etc/init.d/redis-server start
+```
+运行云监工
+```bash
+sudo /var/www/crysadm/run.sh
+```
 
-register.html更新日记:
-添加注册成功提示框
+可以通过浏览器访问云监工了，默认的使用的端口是4000
 
-excavator.html更新日记:
-修正所有按钮显示
-删除老式矿机信息
-删除雇佣矿机信息
-添加秘银数量信息
-添加今日收益信息
-添加水晶产量信息
-添加秘银产量信息
-添加秘银存量信息
-添加设备升级按钮
-添加设备定位按钮
-添加出厂设置按钮
-添加设备管理按钮
-更换设备显示类型
-添加设备固件版本显示
-添加设备端口映射显示
-添加单个账号进攻按钮
-添加单个账号转盘按钮
-添加所有账号进攻按钮
-添加所以账号转盘按钮
-
-excavator_info.html更新日记:
-新增设备管理页面
-
-log.html更新日记:
-新增运行日记页面
-
-base.html更新日记:
-新增运行日记选项
-
-profile.html更新日记:
-添加切换收益开关
-添加收取触发开关
-添加自动提现开关
-添加提现触发开关
-添加免费宝箱开关
-添加秘银进攻开关
-添加幸运转盘开关
-
-user_management.html更新日记:
-添加切换收益开关
-添加收取触发开关
-添加自动提现开关
-添加提现触发开关
-添加免费宝箱开关
-添加秘银进攻开关
-添加幸运转盘开关
-
-运行环境 python3.3+ , redis
-crysadm 启动web服务
-config 配置redis server
-crysadm_helper 启动后台服务
-
-安装后访问 /install 生成管理员账号
-config.py.example 改名为config.py 使用
+127.0.0.1:4000

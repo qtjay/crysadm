@@ -1,6 +1,8 @@
+#! /usr/bin/env python3.4
+# -*- coding: utf-8 -*-
+# crysadm.py - main entance for web GUI
 from flask import Flask
 import config, socket, redis
-
 
 app = Flask(__name__)
 
@@ -8,12 +10,12 @@ app = Flask(__name__)
 if socket.gethostname() == 'GXMBP.local':
     app.config.from_object(config.DevelopmentConfig)
 elif socket.gethostname() == 'iZ23bo17lpkZ':
-    app.config.from_object(config.ProductionConfig)
+    app.config.from_object(config.TestingConfig)
 else:
     app.config.from_object(config.TestingConfig)
 """
-
-app.config.from_object(config.ProductionConfig)
+conf = config.TestingConfig
+app.config.from_object(config.TestingConfig)
 redis_conf = app.config.get('REDIS_CONF')
 pool = redis.ConnectionPool(host=redis_conf.host, port=redis_conf.port, db=redis_conf.db, password=redis_conf.password)
 r_session = redis.Redis(connection_pool=pool)
